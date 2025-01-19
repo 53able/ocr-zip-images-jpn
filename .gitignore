@@ -1,0 +1,4 @@
+assets
+output
+node_modules
+*lock.json
