@@ -40,7 +40,7 @@ const extractZipFiles = async (zipFilePath: string): Promise<Map<string, Buffer>
   await fs.createReadStream(zipFilePath)
     .pipe(unzipper.Parse())
     .on('entry', async entry => {
-      console.log('ZIPファイル内のファイル:', entry.path);
+      // console.log('ZIPファイル内のファイル:', entry.path);
       const fileName = entry.path;
       const ext = path.extname(fileName);
       if (ext === '.png' && !fileName.includes('__MACOSX')) {
