@@ -1,4 +1,5 @@
-assets
+assets/*
+!assets/.gitkeep
 output
 node_modules
 *lock.json
