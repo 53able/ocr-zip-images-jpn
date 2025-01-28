@@ -5,15 +5,18 @@ import sharp from 'sharp';
  * @param image 画像のパスまたはバッファ
  * @param segmentHeight 推奨の分割高さ（px）
  * @param tolerance 空白ラインの判定基準（0〜255, デフォルト: 20）
+ * @param blankHeight 空白ラインの高さ（行数, デフォルト: 1）
  * @returns 分割された画像のバイナリ配列（オリジナルフォーマットを保持）
  */
 export async function splitImage(
   image: string | Buffer,
-  segmentHeight: number = 500,
-  tolerance: number = 20
+  segmentHeight: number = 2000,
+  tolerance: number = 20,
+  blankHeight: number = 1
 ): Promise<Blob[]> {
   const base = sharp(image).toFormat('png'); // PNGに変換
   const { width, height } = await base.metadata();
+  console.log(`Image size: ${width}x${height}`);
   if (!width || !height) throw new Error("Failed to read image metadata.");
 
   // 画像全体をRGBAで読み込み、ピクセルレベルでアクセスする
@@ -21,8 +24,9 @@ export async function splitImage(
   const segments: Buffer[] = [];
   let startY = 0;
   while (startY < height) {
-    const endY = findSplitLine(rawData, width, height, startY, segmentHeight, tolerance);
+    const endY = findSplitLine(rawData, width, height, startY, segmentHeight, tolerance, blankHeight);
     const segHeight = endY - startY;
+    console.log(`Segment: ${startY} - ${endY} (${segHeight})`);
     if (segHeight <= 0) break;
 
     const segmentBuffer = await base
@@ -47,15 +51,35 @@ function findSplitLine(
   height: number,
   startY: number,
   segmentHeight: number,
-  tolerance: number
+  tolerance: number,
+  blankHeight: number
 ): number {
   const end = Math.min(startY + segmentHeight, height);
   for (let y = end; y > startY; y--) {
-    if (isLineBlank(data, width, y, tolerance)) {
+    if (checkConsecutiveBlank(data, width, y, tolerance, blankHeight)) {
       return y;
     }
   }
   return end;
+}
+
+/**
+ * blankHeight 行連続で空白ラインか判定
+ */
+function checkConsecutiveBlank(
+  data: Buffer,
+  width: number,
+  yEnd: number,
+  tolerance: number,
+  blankHeight: number
+): boolean {
+  for (let line = 0; line < blankHeight; line++) {
+    const testLine = yEnd - line;
+    if (testLine < 0 || !isLineBlank(data, width, testLine, tolerance)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /**
@@ -77,13 +101,4 @@ function isLineBlank(
   }
   const avgBrightness = total / width;
   return avgBrightness > tolerance;
-}
-
-/**
- * フォーマットを推定
- */
-function getImageFormat(format: string | undefined): string {
-  // sharpのmetadataに従い、png/jpegのみ対応
-  if (format === 'png') return 'image/png';
-  return 'image/jpeg';
 }

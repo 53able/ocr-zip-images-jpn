@@ -10,14 +10,15 @@ program
   .requiredOption('-i, --input <input>', '入力画像ファイル')
   .option('-o, --output <dir>', 'output directory', 'output')
   .option('-h, --height <px>', '推奨の分割高さ（px）', '2000')
-  .option('-t, --tolerance <0-255>', '空白ラインの判定基準（0〜255）', '80')
+  .option('-t, --tolerance <0-255>', '空白ラインの判定基準（0〜255）', '20')
+  .option('-b, --blank-height <lines>', '空白ラインの連続行数', '20')
   .option('--open', '分割後の画像を開く')
   .action(async (options) => {
-    const { input, output, height, tolerance, open } = options;
+    const { input, output, height, tolerance, open, blankHeight } = options;
     console.log(input, output, height, tolerance);
     const inputPath = path.resolve(input);
     const imageBuffer = fs.readFileSync(inputPath);
-    const segments = await splitImage(imageBuffer, parseInt(height), parseInt(tolerance));
+    const segments = await splitImage(imageBuffer, parseInt(height), parseInt(tolerance), parseInt(blankHeight));
     if (output) {
       const outputDir = output.endsWith('/') ? output : output + '/';
       if (!fs.existsSync(outputDir)){
